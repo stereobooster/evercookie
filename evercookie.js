@@ -65,11 +65,6 @@
   
 */
 
-/* to turn off CSS history knocking, set _ec_history to 0 */
-var _ec_history = 1, // CSS history knocking or not .. can be network intensive
-  _ec_tests = 10, //1000
-  _ec_debug = 0;
-
 function _ec_dump(arr, level) {
   if (!level) {
     level = 0;
@@ -119,37 +114,10 @@ function _ec_replace(str, key, value) {
   }
 }
 
-
-// necessary for flash to communicate with js...
-// please implement a better way
-var _global_lso;
-function _evercookie_flash_var(cookie) {
-  _global_lso = cookie;
-
-  // remove the flash object now
-  var swf = $("#myswf"); //document.getElementById("myswf");
-  if (swf && swf.parentNode) {
-    swf.parentNode.removeChild(swf);
-  }
-}
-
-/*
- * Again, ugly workaround....same problem as flash.
- */
-var _global_isolated;
-function onSilverlightLoad(sender, args) {
-  var control = sender.getHost();
-  _global_isolated = control.Content.App.getIsolatedStorage();
-}
-/*
-function onSilverlightError(sender, args) {
-  _global_isolated = "";
-}*/
-function onSilverlightError(sender, args) {
-  _global_isolated = "";
-}
-
-var evercookie = (function (window) {
+/* to turn off CSS history knocking, set _ec_history to 0 */
+var _ec_history = 1, // CSS history knocking or not .. can be network intensive
+  _ec_tests = 10, //1000
+  evercookie = (function (window, undefined) {
   var document = window.document,
     Image = window.Image,
     localStorage = window.localStorage,
@@ -207,8 +175,8 @@ var evercookie = (function (window) {
     
       // when writing data, we need to make sure lso and silverlight object is there
       if (value !== undefined) {
-        if ((typeof _global_lso === "undefined" || 
-          typeof _global_isolated === "undefined") && 
+        if ((evercookie._global_lso === undefined || 
+          evercookie._global_isolated === undefined) && 
           i++ < _ec_tests) {
           setTimeout(function () {
             self._evercookie(name, cb, value, i, dont_reset);
@@ -222,12 +190,12 @@ var evercookie = (function (window) {
         if (
           (
             // we support local db and haven't read data in yet
-            (window.openDatabase && typeof self._ec.dbData === "undefined") ||
-            (typeof _global_lso === "undefined") ||
-            (typeof self._ec.etagData === "undefined") ||
-            (typeof self._ec.cacheData === "undefined") ||
+            (window.openDatabase && self._ec.dbData === undefined) ||
+            (evercookie._global_lso === undefined) ||
+            (self._ec.etagData === undefined) ||
+            (self._ec.cacheData === undefined) ||
             (document.createElement("canvas").getContext && (typeof self._ec.pngData === "undefined" || self._ec.pngData === "")) ||
-            (typeof _global_isolated === "undefined")
+            (evercookie._global_isolated === undefined)
           ) &&
           i++ < _ec_tests
         )
@@ -241,12 +209,12 @@ var evercookie = (function (window) {
         else
         {
           // get just the piece of data we need from swf
-          self._ec.lsoData = self.getFromStr(name, _global_lso);
-          _global_lso = undefined;
+          self._ec.lsoData = self.getFromStr(name, evercookie._global_lso);
+          evercookie._global_lso = undefined;
 
           // get just the piece of data we need from silverlight
-          self._ec.slData = self.getFromStr(name, _global_isolated);
-          _global_isolated = undefined;
+          self._ec.slData = self.getFromStr(name, evercookie._global_isolated);
+          evercookie._global_isolated = undefined;
 
           var tmpec = self._ec,
             candidates = [],
@@ -905,3 +873,20 @@ var evercookie = (function (window) {
   };
   return this._class;
 }(window));
+
+function _evercookie_flash_var(cookie) {
+  evercookie._global_lso = cookie;
+  // remove the flash object now
+  var swf = $("#myswf"); //document.getElementById("myswf");
+  if (swf && swf.parentNode) {
+    swf.parentNode.removeChild(swf);
+  }
+}
+
+function onSilverlightLoad(sender, args) {
+  evercookie._global_isolated = sender.getHost().Content.App.getIsolatedStorage();
+}
+
+function onSilverlightError(sender, args) {
+  evercookie._global_isolated = "";
+}
